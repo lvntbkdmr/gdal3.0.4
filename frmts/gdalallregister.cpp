@@ -578,6 +578,10 @@ void CPL_STDCALL GDALAllRegister()
     GDALRegister_SIGDEM();
 #endif
 
+#ifdef FRMT_lum
+    GDALRegister_LUM();
+#endif
+
     // NOTE: you need to generally your own driver before that line.
 
 /* -------------------------------------------------------------------- */
