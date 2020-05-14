@@ -341,32 +341,69 @@ GDALDataset *LUMDataset::Create(const char *pszFilename,
     GUInt32 nImageWidth = static_cast<GUInt32>(nXSize);
     GUInt32 nImageHeight = static_cast<GUInt32>(nYSize);
 
-    VSIFWriteL(&nImageWidth, 4, 1, fp);
-    VSIFWriteL(&nImageHeight, 4, 1, fp);
-
     char szHeader[5] = {'\0'};
 
-#ifdef CPL_LSB
-    if (eType == GDT_Byte)
-    {
-        snprintf(szHeader, sizeof(szHeader), "%02dLI", 8);
-    }
-    else
-    {
-        snprintf(szHeader, sizeof(szHeader), "%02dLI", 12);
-    }
-#else
-    if (eType == GDT_Byte)
-    {
-        snprintf(szHeader, sizeof(szHeader), "%02dBI", 8);
-    }
-    else
-    {
-        snprintf(szHeader, sizeof(szHeader), "%02dBI", 12);
-    }
-#endif
+    const char *pszEndian = CSLFetchNameValue(papszOptions, "ENDIAN");
 
-    bool bOK = VSIFWriteL(szHeader, strlen(szHeader), 1, fp) == 1;
+    if (pszEndian)
+    {
+        if (EQUAL(pszEndian, "BIG"))
+        {
+#ifdef CPL_LSB
+            swapByteOrder(nImageWidth);
+            swapByteOrder(nImageHeight);
+#endif
+            if (eType == GDT_Byte)
+            {
+                snprintf(szHeader, sizeof(szHeader), "%02dBI", 8);
+            }
+            else
+            {
+                snprintf(szHeader, sizeof(szHeader), "%02dBI", 12);
+            }
+        }
+        else
+        {
+#ifdef CPL_MSB
+            swapByteOrder(nImageWidth);
+            swapByteOrder(nImageHeight);
+#endif
+            if (eType == GDT_Byte)
+            {
+                snprintf(szHeader, sizeof(szHeader), "%02dLI", 8);
+            }
+            else
+            {
+                snprintf(szHeader, sizeof(szHeader), "%02dLI", 12);
+            }
+        }
+    }
+    else
+    {
+#ifdef CPL_LSB
+        if (eType == GDT_Byte)
+        {
+            snprintf(szHeader, sizeof(szHeader), "%02dLI", 8);
+        }
+        else
+        {
+            snprintf(szHeader, sizeof(szHeader), "%02dLI", 12);
+        }
+#else
+        if (eType == GDT_Byte)
+        {
+            snprintf(szHeader, sizeof(szHeader), "%02dBI", 8);
+        }
+        else
+        {
+            snprintf(szHeader, sizeof(szHeader), "%02dBI", 12);
+        }
+#endif
+    }
+
+    bool bOK = VSIFWriteL(&nImageWidth, 4, 1, fp);
+    bOK = VSIFWriteL(&nImageHeight, 4, 1, fp);
+    bOK = VSIFWriteL(szHeader, strlen(szHeader), 1, fp) == 1;
 
     if (VSIFCloseL(fp) != 0)
         bOK = false;
